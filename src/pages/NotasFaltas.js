@@ -1,20 +1,29 @@
+// src/pages/NotasFaltas.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../components/StatusBadge';
 import LancamentoModal from '../components/LancamentoModal';
-import { getAlunos, atualizarAluno } from '../services/alunoService'; // <<< MUDANÇA IMPORTANTE
+import { getAlunos, atualizarAluno } from '../services/alunoService';
 
 const NotasFaltas = () => {
     const [alunos, setAlunos] = useState([]);
+    const [loading, setLoading] = useState(true); // Estado de carregamento
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
 
-    // Carrega os dados quando o componente é montado
+    // useEffect para buscar os dados do Supabase quando o componente montar
     useEffect(() => {
-        setAlunos(getAlunos());
+        const carregarAlunos = async () => {
+            setLoading(true);
+            const data = await getAlunos();
+            setAlunos(data);
+            setLoading(false);
+        };
+        carregarAlunos();
     }, []);
 
     const calcularStatus = (notas) => {
+        if (!notas) return { notaFinal: 0, valorMaxFinal: 0, status: 'Reprovado' };
         let notaFinal = 0;
         let valorMaxFinal = 0;
         Object.values(notas).forEach(bimestre => {
@@ -26,10 +35,9 @@ const NotasFaltas = () => {
             }
         });
         const percentual = valorMaxFinal > 0 ? (notaFinal / valorMaxFinal) * 100 : 0;
-        let status = 'Aprovado';
-        if (percentual < 50) status = 'Reprovado';
-        else if (percentual < 70) status = 'Recuperação';
-        return { notaFinal, valorMaxFinal, status };
+        if (percentual < 50) return { notaFinal, valorMaxFinal, status: 'Reprovado' };
+        if (percentual < 70) return { notaFinal, valorMaxFinal, status: 'Recuperação' };
+        return { notaFinal, valorMaxFinal, status: 'Aprovado' };
     };
 
     const handleOpenModal = (aluno) => {
@@ -42,12 +50,15 @@ const NotasFaltas = () => {
         setSelectedStudent(null);
     };
 
-    const handleSaveData = (studentId, data) => {
-        // Usa nosso serviço para atualizar e persistir os dados
-        const alunosAtualizados = atualizarAluno(studentId, data);
-        setAlunos(alunosAtualizados); // Atualiza o estado local para re-renderizar
-        console.log("Dados persistidos no localStorage:", alunosAtualizados);
+    const handleSaveData = async (studentId, data) => {
+        const alunosAtualizados = await atualizarAluno(studentId, data);
+        setAlunos(alunosAtualizados);
+        console.log("Dados persistidos no Supabase!");
     };
+
+    if (loading) {
+        return <div className="p-6">Carregando dados dos alunos...</div>;
+    }
 
     return (
         <>
@@ -72,8 +83,8 @@ const NotasFaltas = () => {
                                 return (
                                     <tr key={aluno.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                                         <td className="p-4 flex items-center gap-3">
-                                            <img src={aluno.avatar} alt={aluno.nome} className="w-10 h-10 rounded-full" />
-                                            <span className="font-medium">{aluno.nome}</span>
+                                            <img src={aluno.avatar_url || `https://i.pravatar.cc/100?u=${aluno.id}`} alt={aluno.full_name} className="w-10 h-10 rounded-full" />
+                                            <span className="font-medium">{aluno.full_name}</span>
                                         </td>
                                         <td className="p-4 font-bold">{notaFinal} / {valorMaxFinal}</td>
                                         <td className="p-4"><StatusBadge status={status} /></td>

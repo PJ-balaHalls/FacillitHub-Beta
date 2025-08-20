@@ -80,7 +80,7 @@ const LancamentoModal = ({ isOpen, onClose, student, onSave }) => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 transition-opacity duration-300">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Gerenciar Notas de {student.nome}</h2>
+                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Gerenciar Notas de {student.full_name}</h2>
                     <button onClick={onClose} className="p-1 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                         <FiX size={24} />
                     </button>

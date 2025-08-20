@@ -1,8 +1,13 @@
-import React, { createContext, useState, useEffect } from 'react';
+// src/context/ThemeContext.js
+import React, { createContext, useState, useEffect, useContext } from 'react';
 
-export const ThemeContext = createContext();
+const ThemeContext = createContext();
 
-export const ThemeProvider = ({ children }) => {
+export const useTheme = () => {
+  return useContext(ThemeContext);
+};
+
+export default function ThemeProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';

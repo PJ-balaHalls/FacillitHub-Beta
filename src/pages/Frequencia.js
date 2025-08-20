@@ -1,15 +1,25 @@
+// src/pages/Frequencia.js
 import React, { useState, useEffect } from 'react';
-import { getAlunos, salvarAlunos } from '../services/alunoService';
+import { getAlunos, atualizarAluno } from '../services/alunoService';
 
 const Frequencia = () => {
     const [alunos, setAlunos] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().slice(0, 10));
     const [frequenciaDiaria, setFrequenciaDiaria] = useState({});
 
+    // Efeito para carregar os alunos
     useEffect(() => {
-        setAlunos(getAlunos());
+        const carregarAlunos = async () => {
+            setLoading(true);
+            const data = await getAlunos();
+            setAlunos(data);
+            setLoading(false);
+        };
+        carregarAlunos();
     }, []);
     
+    // Efeito para carregar a frequência do dia selecionado
     useEffect(() => {
         const frequenciaSalva = {};
         alunos.forEach(aluno => {
@@ -27,25 +37,24 @@ const Frequencia = () => {
         }));
     };
 
-    const handleSalvarChamada = () => {
-        let alunosAtualizados = getAlunos();
-
-        alunosAtualizados.forEach(aluno => {
-            if(frequenciaDiaria[aluno.id]) {
-                if(!aluno.frequencia) {
-                    aluno.frequencia = {};
-                }
-                aluno.frequencia[dataSelecionada] = frequenciaDiaria[aluno.id];
+    const handleSalvarChamada = async () => {
+        // Cria uma promessa de atualização para cada aluno que teve o status modificado
+        const promises = alunos.map(aluno => {
+            const novoStatus = frequenciaDiaria[aluno.id];
+            // Só atualiza se houver um novo status e for diferente do que já está salvo
+            if (novoStatus && (!aluno.frequencia || aluno.frequencia[dataSelecionada] !== novoStatus)) {
+                const novaFrequencia = { ...aluno.frequencia, [dataSelecionada]: novoStatus };
+                return atualizarAluno(aluno.id, { frequencia: novaFrequencia });
             }
+            return Promise.resolve(); // Retorna uma promessa resolvida para não quebrar o Promise.all
         });
-
-        // Persiste a lista completa de alunos com os novos dados de frequência
-        salvarAlunos(alunosAtualizados); 
-        setAlunos(alunosAtualizados);
         
-        console.log("Salvando chamada para o dia:", dataSelecionada);
-        console.log("Dados:", frequenciaDiaria);
-        alert("Chamada salva com sucesso (verifique o console)!");
+        await Promise.all(promises); // Espera todas as atualizações terminarem
+        
+        // Recarrega os dados para garantir a consistência
+        const data = await getAlunos();
+        setAlunos(data);
+        alert("Chamada salva com sucesso!");
     };
 
     const statusOptions = [
@@ -53,6 +62,10 @@ const Frequencia = () => {
         { value: 'ausente', label: 'A', color: 'bg-red-500', hover: 'hover:bg-red-600' },
         { value: 'atestado', label: 'J', color: 'bg-yellow-500', hover: 'hover:bg-yellow-600' },
     ];
+    
+    if (loading) {
+        return <div className="p-6">Carregando lista de chamada...</div>;
+    }
 
     return (
         <div className="p-6">
@@ -86,8 +99,8 @@ const Frequencia = () => {
                         {alunos.map((aluno) => (
                             <tr key={aluno.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                                 <td className="p-4 flex items-center gap-4">
-                                    <img src={aluno.avatar} alt={aluno.nome} className="w-12 h-12 rounded-full" />
-                                    <span className="font-medium text-base">{aluno.nome}</span>
+                                    <img src={aluno.avatar_url || `https://i.pravatar.cc/100?u=${aluno.id}`} alt={aluno.full_name} className="w-12 h-12 rounded-full" />
+                                    <span className="font-medium text-base">{aluno.full_name}</span>
                                 </td>
                                 <td className="p-4 text-center">
                                     <div className="flex justify-center gap-3">
