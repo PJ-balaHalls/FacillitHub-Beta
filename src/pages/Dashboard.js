@@ -1,73 +1,110 @@
 // src/pages/Dashboard.js
-import React from 'react';
-import { motion } from 'framer-motion';
-import { FiUsers, FiClipboard, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext'; // Importa nosso hook
-import GeradorCodigo from '../components/GeradorCodigo'; // Importa o novo componente
 
-const Widget = ({ icon, title, value, color }) => (
-  <motion.div 
-    className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md flex items-center gap-4"
-    whileHover={{ scale: 1.05 }}
-    transition={{ type: 'spring', stiffness: 300 }}
-  >
-    <div className={`text-3xl p-3 rounded-full ${color}`}>
-        {icon}
-    </div>
-    <div>
-        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</p>
-        <p className="text-2xl font-semibold text-gray-800 dark:text-white">{value}</p>
-    </div>
-  </motion.div>
-);
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext'; // Ajuste o caminho se necessário
+import { supabase } from '../services/supabaseClient'; // Ajuste o caminho se necessário
+import { FaUserGraduate } from 'react-icons/fa'; // Ícone de exemplo
 
-const Notification = ({ type, message }) => {
-    const isPositive = type === 'positive';
-    const bgColor = isPositive ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900';
-    const textColor = isPositive ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300';
-    const icon = isPositive ? <FiCheckCircle /> : <FiAlertTriangle />;
-
-    return (
-        <div className={`p-4 rounded-lg flex items-center gap-4 ${bgColor} ${textColor}`}>
-            <span className="text-2xl">{icon}</span>
-            <p>{message}</p>
-        </div>
-    );
-};
-
-const Dashboard = () => {
-  const { profile } = useAuth(); // Pega o perfil completo do usuário logado
+// --- Componente Reutilizável para o Card do Aluno ---
+const StudentCard = ({ student }) => {
+  const initials = student.full_name
+    ? student.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)
+    : '?';
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-semibold text-gray-800 dark:text-white mb-6">
-        Dashboard {profile?.user_category === 'professor' && 'do Professor'}
-      </h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Notification type="positive" message="Todas as notas foram lançadas com sucesso!" />
-          <Notification type="negative" message="Atenção: 3 atividades pendentes de correção." />
+    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 flex items-center space-x-4 hover:shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer">
+      <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold">
+        {student.avatar_url ? (
+          <img src={student.avatar_url} alt={student.full_name} className="w-full h-full rounded-full object-cover" />
+        ) : (
+          <span>{initials}</span>
+        )}
       </div>
-
-      {/* Renderização condicional da ferramenta de gerar código */}
-      {profile?.user_category === 'professor' && (
-          <div className="mb-6">
-              <GeradorCodigo />
-          </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Widget icon={<FiUsers />} title="Total de Alunos" value="1,250" color="text-primary bg-primary/20" />
-        <Widget icon={<FiClipboard />} title="Média da Turma" value="8.5" color="text-secondary bg-secondary/20" />
-        <Widget icon={<FiCheckCircle />} title="Atividades Concluídas" value="78%" color="text-blue-500 bg-blue-500/20" />
+      <div className="flex-1">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">{student.full_name || 'Nome não disponível'}</h3>
+        <p className="text-gray-500 dark:text-gray-400">@{student.nickname || 'sem apelido'}</p>
       </div>
+    </div>
+  );
+};
 
-       <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Personalizar Layout</h2>
-            <p className="text-gray-600 dark:text-gray-300">
-                Em breve, você poderá arrastar e soltar os widgets para organizar seu dashboard da maneira que preferir.
-            </p>
-       </div>
+// --- Componente Principal do Dashboard ---
+const Dashboard = () => {
+  const { user } = useContext(AuthContext);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Chamada RPC para a função que criamos no Supabase
+        const { data, error: rpcError } = await supabase.rpc('get_students_by_teacher', {
+          teacher_id_param: user.id // Passamos o ID do professor logado
+        });
+
+        if (rpcError) {
+          throw rpcError;
+        }
+
+        setStudents(data || []);
+
+      } catch (err) {
+        console.error("Erro ao buscar alunos:", err);
+        setError("Falha ao carregar os dados dos alunos. Por favor, tente recarregar a página.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [user]); // Roda o efeito quando o 'user' é carregado ou muda
+
+  const renderContent = () => {
+    if (loading) {
+      return <p className="text-center text-gray-500">Carregando sua turma...</p>;
+    }
+
+    if (error) {
+      return <p className="text-center text-red-500 bg-red-100 p-4 rounded-lg">{error}</p>;
+    }
+
+    if (students.length === 0) {
+      return (
+        <div className="text-center text-gray-500 p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <FaUserGraduate className="mx-auto text-4xl mb-4" />
+            <h3 className="text-xl font-semibold">Nenhum aluno encontrado</h3>
+            <p>Parece que você ainda não tem alunos vinculados à sua conta.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {students.map(student => (
+          <StudentCard key={student.student_id} student={student} />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Meu Painel</h1>
+        <p className="text-gray-600 dark:text-gray-400">Gerencie sua turma e acompanhe o progresso de cada aluno.</p>
+      </header>
+      <main>
+        {renderContent()}
+      </main>
     </div>
   );
 };
