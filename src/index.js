@@ -1,16 +1,23 @@
 // src/index.js
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import ThemeProvider from './context/ThemeContext'; // <<< CORREÇÃO AQUI
-import SidebarProvider from './context/SidebarContext'; // <<< CORREÇÃO AQUI
-import AuthProvider from './context/AuthContext';
+
+// --- INÍCIO DA CORREÇÃO ---
+// Removemos as chaves {} de ThemeProvider e SidebarProvider
+// para importá-los como padrão (default).
+import ThemeProvider from './context/ThemeContext';
+import SidebarProvider from './context/SidebarContext';
+// A importação do AuthProvider já estava correta.
+import { AuthProvider } from './context/AuthContext';
+// --- FIM DA CORREÇÃO ---
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    {/* Agora todos os providers são importados como default */}
     <ThemeProvider>
       <SidebarProvider>
         <AuthProvider>

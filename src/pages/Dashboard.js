@@ -1,13 +1,16 @@
 // src/pages/Dashboard.js
 
-import React, { useState, useEffect, useContext } from 'react';
-// 1. O 'profile' e o 'loading' do AuthContext agora são importados.
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+// --- INÍCIO DA CORREÇÃO ---
+// 1. Removemos a importação de 'AuthContext' e 'useContext'.
+// 2. Importamos diretamente o hook 'useAuth' que já faz o trabalho.
+import { useAuth } from '../context/AuthContext';
+// --- FIM DA CORREÇÃO ---
 import { supabase } from '../services/supabaseClient';
 import { FaUserGraduate } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
-// --- Componente Reutilizável para o Card do Aluno ---
+// --- Componente Reutilizável para o Card do Aluno (sem alterações) ---
 const StudentCard = ({ student, onClick }) => {
   const initials = student.full_name
     ? student.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
@@ -35,8 +38,10 @@ const StudentCard = ({ student, onClick }) => {
 
 // --- Componente Principal do Dashboard ---
 const Dashboard = () => {
-  // 2. Pegamos 'user', 'profile' e 'loading' (renomeado para authLoading) do contexto.
-  const { user, profile, loading: authLoading } = useContext(AuthContext);
+  // --- INÍCIO DA CORREÇÃO ---
+  // 3. Usamos o hook 'useAuth()' diretamente. É mais limpo e é o padrão correto.
+  const { user, profile, loading: authLoading } = useAuth();
+  // --- FIM DA CORREÇÃO ---
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [error, setError] = useState(null);
@@ -44,12 +49,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      // A busca só inicia se o usuário (user) e o perfil (profile) estiverem carregados.
       if (!user || !profile) {
-        // Se a autenticação já terminou e não temos usuário, paramos o carregamento.
         if (!authLoading) {
             setLoadingStudents(false);
         }
+        return;
+      }
+
+      // Apenas professores podem buscar alunos
+      if (profile.role !== 'professor') {
+        setLoadingStudents(false);
         return;
       }
 
@@ -73,19 +82,31 @@ const Dashboard = () => {
       }
     };
 
-    fetchStudents();
-  }, [user, profile, authLoading]); // O efeito depende de user, profile e authLoading.
+    // A busca só é acionada se a autenticação não estiver carregando
+    if (!authLoading) {
+        fetchStudents();
+    }
+  }, [user, profile, authLoading]);
 
   const handleStudentClick = (studentId) => {
     navigate(`/ficha-aluno/${studentId}`);
   };
   
-  // 3. Enquanto o AuthContext estiver carregando a sessão, exibimos uma mensagem.
   if (authLoading) {
     return (
         <div className="flex justify-center items-center h-screen bg-gray-100 dark:bg-gray-900">
             <p className="text-gray-500">Carregando sessão...</p>
         </div>
+    );
+  }
+
+  // Se o perfil carregou mas não é de um professor, mostra uma mensagem.
+  if (profile && profile.role !== 'professor') {
+    return (
+      <div className="p-6 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen text-center">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Acesso Restrito</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-4">Esta página é destinada apenas para professores.</p>
+      </div>
     );
   }
 
@@ -120,7 +141,6 @@ const Dashboard = () => {
   return (
     <div className="p-6 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
       <header className="mb-8">
-        {/* 4. CORREÇÃO PRINCIPAL: Usamos 'profile.full_name' e verificamos se 'profile' existe. */}
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Bem-vindo(a), {profile ? profile.full_name : 'Professor(a)'}!</h1>
         <p className="text-gray-600 dark:text-gray-400">Gerencie sua turma e acompanhe o progresso de cada aluno.</p>
       </header>
