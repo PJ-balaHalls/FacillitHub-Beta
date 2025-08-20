@@ -4,7 +4,7 @@ import { FiX, FiUser, FiMail, FiCalendar } from 'react-icons/fi';
 import { criarCodigoConvite } from '../services/organizationService';
 
 const PreCadastroAlunoModal = ({ isOpen, onClose, organization, onCodeGenerated }) => {
-    const [formData, setFormData] = useState({ full_name: '', email: '', birth_date: '' });
+    const [formData, setFormData] = useState({ full_name: '', email_prefix: '', birth_date: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -14,30 +14,44 @@ const PreCadastroAlunoModal = ({ isOpen, onClose, organization, onCodeGenerated 
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // <<< MELHORIA AQUI: Lógica de sanitização do e-mail aprimorada
+    const sanitizeEmailPrefix = (prefix) => {
+        // Converte para minúsculas e permite letras, números, pontos, hífens e underscores
+        return prefix.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Monta o e-mail padrão do Facillit Hub
-        const generatedEmail = `${formData.email.toLowerCase().replace(/[^a-z0-9]/g, '')}@facillithub.com`;
+        const sanitizedPrefix = sanitizeEmailPrefix(formData.email_prefix);
+        if (!sanitizedPrefix) {
+            setError('O login do aluno é inválido.');
+            setLoading(false);
+            return;
+        }
+
+        const generatedEmail = `${sanitizedPrefix}@facillithub.com`;
         
         const prefilledData = {
             full_name: formData.full_name,
             birth_date: formData.birth_date,
-            email: generatedEmail, // Usamos o e-mail gerado
+            email: generatedEmail,
         };
         
         const novoCodigo = await criarCodigoConvite(organization.id, prefilledData);
 
         if (novoCodigo) {
             onCodeGenerated(novoCodigo.code);
-            onClose(); // Fecha o modal após sucesso
+            onClose();
         } else {
-            setError('Falha ao gerar o código. Tente novamente.');
+            setError('Falha ao gerar o código. Verifique se o login já não está em uso.');
         }
         setLoading(false);
     };
+
+    const finalEmail = `${sanitizeEmailPrefix(formData.email_prefix)}@facillithub.com`;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
@@ -56,8 +70,9 @@ const PreCadastroAlunoModal = ({ isOpen, onClose, organization, onCodeGenerated 
                     </div>
                      <div className="relative">
                         <FiMail className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-                        <input name="email" placeholder="Crie um login (ex: pedro.maia)" required onChange={handleChange} className="w-full pl-10 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"/>
-                         <p className="text-xs text-gray-500 pl-2 pt-1">O e-mail final será: {formData.email.toLowerCase().replace(/[^a-z0-9]/g, '')}@facillithub.com</p>
+                        {/* Renomeado para 'email_prefix' para maior clareza */}
+                        <input name="email_prefix" placeholder="Crie um login (ex: pedro.maia)" required onChange={handleChange} className="w-full pl-10 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"/>
+                         <p className="text-xs text-gray-500 pl-2 pt-1">O e-mail final será: {finalEmail}</p>
                     </div>
                      <div className="relative">
                         <FiCalendar className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
