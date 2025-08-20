@@ -1,6 +1,9 @@
+// src/pages/Dashboard.js
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiUsers, FiClipboard, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext'; // Importa nosso hook
+import GeradorCodigo from '../components/GeradorCodigo'; // Importa o novo componente
 
 const Widget = ({ icon, title, value, color }) => (
   <motion.div 
@@ -33,14 +36,25 @@ const Notification = ({ type, message }) => {
 };
 
 const Dashboard = () => {
+  const { profile } = useAuth(); // Pega o perfil completo do usuário logado
+
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-semibold text-gray-800 dark:text-white mb-6">Dashboard</h1>
+      <h1 className="text-3xl font-semibold text-gray-800 dark:text-white mb-6">
+        Dashboard {profile?.user_category === 'professor' && 'do Professor'}
+      </h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Notification type="positive" message="Todas as notas foram lançadas com sucesso!" />
           <Notification type="negative" message="Atenção: 3 atividades pendentes de correção." />
       </div>
+
+      {/* Renderização condicional da ferramenta de gerar código */}
+      {profile?.user_category === 'professor' && (
+          <div className="mb-6">
+              <GeradorCodigo />
+          </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Widget icon={<FiUsers />} title="Total de Alunos" value="1,250" color="text-primary bg-primary/20" />
