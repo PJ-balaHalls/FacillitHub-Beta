@@ -17,14 +17,22 @@ const Login = () => {
         setError('');
         setLoading(true);
         
-        const { error } = await signIn({ email, password });
-
-        if (error) {
-            setError(error.message);
-        } else {
-            navigate('/'); // Redireciona para o Dashboard após o login
+        // --- INÍCIO DA CORREÇÃO ---
+        // Usamos o bloco try...catch para lidar com a função signIn
+        try {
+            // Tenta fazer o login
+            await signIn({ email, password });
+            // Se não houver erro, navega para o dashboard
+            navigate('/dashboard'); 
+        } catch (err) {
+            // Se signIn 'lançar um erro', ele é capturado aqui
+            setError(err.message || 'Falha no login. Verifique seu e-mail e senha.');
+            console.error("Login error:", err);
+        } finally {
+            // Este bloco sempre será executado, independentemente de sucesso ou falha
+            setLoading(false);
         }
-        setLoading(false);
+        // --- FIM DA CORREÇÃO ---
     };
 
     return (

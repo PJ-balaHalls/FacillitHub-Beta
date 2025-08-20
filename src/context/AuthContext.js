@@ -64,24 +64,22 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    // --- INÍCIO DA CORREÇÃO ---
     const signIn = async ({ email, password }) => {
-        // Primeiro, chamamos a função e armazenamos o resultado
+        // --- INÍCIO DA CORREÇÃO ---
         const result = await supabase.auth.signInWithPassword({ email, password });
 
-        // Adicionamos uma verificação de segurança. Se o resultado for nulo,
-        // lançamos um erro claro, em vez de deixar o app quebrar.
+        // Adicionamos esta verificação de segurança. Se o resultado for nulo,
+        // o problema é de configuração, e lançamos um erro claro.
         if (!result) {
-            throw new Error("A resposta da autenticação foi inesperada. Verifique a conexão e a configuração do Supabase.");
+            throw new Error("A resposta da autenticação foi inesperada. Verifique a conexão e a configuração do Supabase no arquivo .env.");
         }
 
-        // Agora que sabemos que 'result' existe, podemos desestruturar com segurança.
         const { error } = result;
         if (error) {
             throw error;
         }
+        // --- FIM DA CORREÇÃO ---
     };
-    // --- FIM DA CORREÇÃO ---
 
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
