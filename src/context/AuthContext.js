@@ -2,7 +2,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../services/supabaseClient';
 
-const AuthContext = createContext();
+// <<< AJUSTE AQUI: Adicionado valor inicial null
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
     return useContext(AuthContext);
@@ -63,6 +64,6 @@ export default function AuthProvider({ children }) {
     return (
         <AuthContext.Provider value={value}>
             {!loading && children}
-        </AuthContext.Provider> // <<< CORREÇÃO DEFINITIVA AQUI
+        </AuthContext.Provider>
     );
 };

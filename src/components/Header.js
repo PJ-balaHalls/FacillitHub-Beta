@@ -1,8 +1,8 @@
 // src/components/Header.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSidebar } from '../context/SidebarContext';   // <-- CORREÇÃO: Usando o hook
-import { useTheme } from '../context/ThemeContext';       // <-- CORREÇÃO: Usando o hook
+import { useSidebar } from '../context/SidebarContext';
+import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { FiMenu, FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,10 +13,19 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+    setLoggingOut(true);
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      alert('Não foi possível sair. Tente novamente.');
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -34,6 +43,8 @@ const Header = () => {
             <span className="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full"></span>
         </button>
 
+        {/* <<< CORREÇÃO CRÍTICA AQUI >>> */}
+        {/* Este bloco só será renderizado se o 'user' existir, evitando o erro */}
         {user && (
           <div className="relative">
             <button 
@@ -67,10 +78,11 @@ const Header = () => {
                     </li>
                     <li>
                       <button 
-                        onClick={handleLogout} 
-                        className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50"
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 disabled:opacity-50"
                       >
-                        <FiLogOut /> Sair
+                        <FiLogOut /> {loggingOut ? 'Saindo...' : 'Sair'}
                       </button>
                     </li>
                   </ul>
