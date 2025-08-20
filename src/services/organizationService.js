@@ -17,13 +17,6 @@ export const getMinhaOrganizacao = async (userId) => {
     return data ? data.organizations : null;
 };
 
-// <<< FUNÇÃO ATUALIZADA >>>
-/**
- * Cria um novo código de convite com dados de pré-cadastro.
- * @param {string} organizationId - O ID da organização.
- * @param {Object} prefilledData - Objeto com os dados do aluno (full_name, email, birth_date).
- * @returns {Promise<Object|null>} O novo código de convite.
- */
 export const criarCodigoConvite = async (organizationId, prefilledData) => {
     const codigo = nanoid(8).toUpperCase();
 
@@ -33,7 +26,7 @@ export const criarCodigoConvite = async (organizationId, prefilledData) => {
             code: codigo,
             organization_id: organizationId,
             role: 'student',
-            prefilled_data: prefilledData, // Armazena os dados do aluno
+            prefilled_data: prefilledData,
         })
         .select()
         .single();
@@ -45,10 +38,17 @@ export const criarCodigoConvite = async (organizationId, prefilledData) => {
     return data;
 };
 
+// <<< CORREÇÃO DEFINITIVA AQUI >>>
+/**
+ * Valida um código de convite e seleciona explicitamente os dados pré-preenchidos.
+ * @param {string} code - O código a ser validado.
+ * @returns {Promise<Object|null>} Os dados do código se for válido, senão null.
+ */
 export const validateInvitationCode = async (code) => {
     const { data, error } = await supabase
         .from('invitation_codes')
-        .select('*')
+        // Selecionamos todas as colunas E explicitamente a coluna JSONB
+        .select('*, prefilled_data') 
         .eq('code', code.toUpperCase())
         .is('used_by_user_id', null)
         .single();

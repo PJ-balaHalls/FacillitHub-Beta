@@ -1,7 +1,7 @@
 // src/pages/Cadastro.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext'; // <<< LINHA QUE FALTAVA
 import { updateUserProfile } from '../services/alunoService';
 import { validateInvitationCode, linkUserToOrganization, markCodeAsUsed } from '../services/organizationService';
 import { FiMail, FiLock, FiHash, FiUser, FiBriefcase, FiBookOpen } from 'react-icons/fi';
@@ -19,7 +19,7 @@ const ProgressBar = ({ step, totalSteps }) => {
 };
 
 const Cadastro = () => {
-    const [flow, setFlow] = useState(null); // null, 'personal', 'institutional'
+    const [flow, setFlow] = useState(null);
     const [step, setStep] = useState(1);
     const [invitationCode, setInvitationCode] = useState('');
     const [validCodeData, setValidCodeData] = useState(null);
@@ -37,6 +37,10 @@ const Cadastro = () => {
     const { signUp } = useAuth();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        console.log("ESTADO ATUAL DO FORMULÁRIO:", formData);
+    }, [formData]);
+
     const handleChange = (e) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -50,6 +54,9 @@ const Cadastro = () => {
         setLoading(true);
         setError('');
         const codeData = await validateInvitationCode(invitationCode);
+
+        console.log("Dados do código recebidos do Supabase:", codeData);
+
         if (codeData && codeData.prefilled_data) {
             setValidCodeData(codeData);
             setFormData(prev => ({ ...prev, ...codeData.prefilled_data, user_category: codeData.role }));
@@ -69,10 +76,9 @@ const Cadastro = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-
-        // Linha de depuração para vermos os dados
-        console.log("Enviando para o Supabase:", { email: formData.email, password: formData.password });
-
+        
+        console.log("DADOS FINAIS SENDO ENVIADOS PARA SIGNUP:", { email: formData.email, password: formData.password });
+        
         try {
             const { data: { user }, error: authError } = await signUp({
                 email: formData.email,
@@ -110,11 +116,11 @@ const Cadastro = () => {
     const renderPersonalFlow = () => {
         // ... (código do fluxo pessoal, sem alterações)
     };
-    
+
     const renderInstitutionalFlow = () => {
         if (step === 1) {
             return (
-                 <>
+                 <form onSubmit={handleSubmit} className="space-y-4">
                     <h2 className="text-2xl font-semibold text-center text-gray-800 dark:text-white">Finalize seu Cadastro</h2>
                     <p className="text-center text-gray-500 dark:text-gray-400">Confirme seus dados e crie sua senha de acesso.</p>
                     
@@ -128,7 +134,7 @@ const Cadastro = () => {
                     <div className="relative"><FiLock className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" /><input name="password" type="password" placeholder="Crie uma senha de acesso" minLength="6" onChange={handleChange} required className="w-full pl-10 p-3 border rounded-lg dark:bg-gray-700 dark:border-gray-600"/></div>
                     
                     <button type="submit" disabled={loading} className="w-full mt-6 py-3 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400">{loading ? 'Finalizando...' : 'Concluir Cadastro'}</button>
-                </>
+                </form>
             );
         }
         return null;
@@ -167,12 +173,8 @@ const Cadastro = () => {
                     {error && <p className="text-red-500 bg-red-100 dark:bg-red-900/50 p-3 rounded-md text-center">{error}</p>}
                     {message && <p className="text-green-500 bg-green-100 dark:bg-green-900/50 p-3 rounded-md text-center">{message}</p>}
                     
-                    {/* <<< CORREÇÃO ESTRUTURAL AQUI >>> */}
-                    {/* Agora há apenas UM form, e as funções de render retornam apenas os campos */}
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {flow === 'personal' && renderPersonalFlow()}
-                        {flow === 'institutional' && renderInstitutionalFlow()}
-                    </form>
+                    {flow === 'personal' && <form onSubmit={handleSubmit} className="space-y-4">{renderPersonalFlow()}</form>}
+                    {flow === 'institutional' && renderInstitutionalFlow()}
 
                     {!message && (
                         <div className="pt-4 space-y-2">
