@@ -6,8 +6,6 @@ import { supabase } from './supabaseClient';
  * @returns {Promise<Array>} Uma promessa que resolve para a lista de alunos.
  */
 export const getAlunos = async () => {
-    // Usamos o 'select' para buscar todos os dados (*) da tabela 'profiles'
-    // Onde a categoria do usuário é 'aluno'
     const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -18,8 +16,6 @@ export const getAlunos = async () => {
         return [];
     }
 
-    // O Supabase retorna os dados no formato que já usamos, então poucas mudanças são necessárias.
-    // Apenas garantimos que os dados que podem não existir (notas, frequencia) sejam arrays ou objetos vazios.
     return data.map(aluno => ({
         ...aluno,
         notas: aluno.notas || { b1: [], b2: [], b3: [], b4: [] },
@@ -37,7 +33,7 @@ export const getAlunoById = async (id) => {
         .from('profiles')
         .select('*')
         .eq('id', id)
-        .single(); // .single() retorna um único objeto em vez de um array
+        .single();
 
     if (error) {
         console.error('Erro ao buscar aluno por ID:', error);
@@ -51,7 +47,6 @@ export const getAlunoById = async (id) => {
     } : null;
 };
 
-
 /**
  * Atualiza os dados de um aluno específico no banco.
  * @param {string} id - O UUID do aluno a ser atualizado.
@@ -59,7 +54,6 @@ export const getAlunoById = async (id) => {
  * @returns {Promise<Array>} Uma promessa que resolve para a lista de alunos atualizada.
  */
 export const atualizarAluno = async (id, novosDados) => {
-    // Usamos 'update' para modificar a linha onde o 'id' corresponde
     const { error } = await supabase
         .from('profiles')
         .update(novosDados)
@@ -69,6 +63,24 @@ export const atualizarAluno = async (id, novosDados) => {
         console.error('Erro ao atualizar aluno:', error);
     }
     
-    // Após atualizar, buscamos a lista completa novamente para garantir que a UI esteja sincronizada.
     return await getAlunos();
+};
+
+
+// <<< NOVA FUNÇÃO ADICIONADA AQUI >>>
+/**
+ * Atualiza o perfil de um usuário recém-cadastrado com dados adicionais.
+ * @param {string} userId - O ID do usuário autenticado.
+ * @param {Object} profileData - Os dados completos do perfil a serem inseridos.
+ */
+export const updateUserProfile = async (userId, profileData) => {
+    const { error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', userId);
+
+    if (error) {
+        console.error('Erro ao atualizar o perfil do usuário:', error);
+        throw error;
+    }
 };

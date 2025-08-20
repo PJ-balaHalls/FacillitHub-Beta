@@ -1,12 +1,12 @@
 // src/components/Sidebar.js
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useSidebar } from '../context/SidebarContext';
+import { useSidebar } from '../context/SidebarContext'; // <-- CORREÇÃO: Usando o hook
 import { motion } from 'framer-motion';
 import { FiHome, FiBookOpen, FiClipboard, FiBarChart2, FiSettings, FiCheckSquare } from 'react-icons/fi';
 
 const Sidebar = () => {
-  const { isSidebarOpen } = useSidebar();
+  const { isSidebarOpen } = useSidebar(); // <-- CORREÇÃO: Usando o hook
 
   const navItems = [
     { icon: <FiHome />, name: 'Dashboard', path: '/' },
